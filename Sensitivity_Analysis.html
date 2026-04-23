@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sensitivity Analysis — Tubular Bowl Centrifuge</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #11141c;
+    --border: #1e2330;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7fff6b;
+    --accent4: #c084fc;
+    --text: #e8eaf0;
+    --muted: #5a6070;
+    --panel: #0d1018;
+    --font-mono: 'Courier New', Courier, monospace;
+    --font-display: Georgia, 'Times New Roman', serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 24px 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(10,12,16,0.9);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo-ring {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    display: grid; place-items: center;
+    animation: spin 8s linear infinite;
+    flex-shrink: 0;
+  }
+  .logo-ring::after {
+    content: '';
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  header h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; }
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent4);
+    background: rgba(192,132,252,0.1);
+    border: 1px solid rgba(192,132,252,0.25);
+    padding: 3px 9px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+  header p {
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: #8a9ab0;
+  }
+
+  /* ── LAYOUT ── */
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* ── SECTION HEADER ── */
+  .sec-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .sec-header h2 {
+    font-size: 0.8rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .sec-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── BASELINE PARAMS ── */
+  .baseline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .bp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+  .bp-card:hover { border-color: rgba(0,212,255,0.3); }
+  .bp-card label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: #8a9ab0;
+    letter-spacing: 1px;
+  }
+  .bp-card input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    width: 100%;
+    outline: none;
+    padding-bottom: 2px;
+    transition: border-color 0.2s;
+  }
+  .bp-card input:focus { border-bottom-color: var(--accent); }
+  .bp-card .unit {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: #8a9ab0;
+  }
+
+  .run-btn {
+    align-self: flex-start;
+    background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05));
+    border: 1px solid rgba(0,212,255,0.4);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    padding: 11px 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .run-btn:hover {
+    background: rgba(0,212,255,0.2);
+    box-shadow: 0 0 20px rgba(0,212,255,0.15);
+  }
+
+  /* ── PERTURBATION CONTROLS ── */
+  .pert-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .pert-row label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: #8a9ab0;
+  }
+  .pert-btns {
+    display: flex;
+    gap: 8px;
+  }
+  .pert-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    padding: 5px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: #8a9ab0;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+  }
+  .pert-btn.active, .pert-btn:hover {
+    border-color: var(--accent4);
+    color: var(--accent4);
+    background: rgba(192,132,252,0.08);
+  }
+
+  .output-toggle {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .out-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    padding: 5px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: #8a9ab0;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .out-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(255,107,53,0.08); }
+
+  /* ── RESULTS AREA ── */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 900px) {
+    .results-grid { grid-template-columns: 1fr; }
+    header p { display: none; }
+  }
+
+  .chart-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .chart-box h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: #a0b4c8;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+  .chart-box canvas { max-height: 280px; }
+
+  /* ── DATA TABLE ── */
+  .table-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    overflow-x: auto;
+    grid-column: 1 / -1;
+  }
+  .table-box h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: #a0b4c8;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+  }
+  th {
+    text-align: left;
+    color: #8a9ab0;
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(30,35,48,0.6);
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  tr:hover td { background: rgba(0,212,255,0.03); }
+  .td-param { color: var(--text); font-weight: 700; }
+  .td-base { color: #8a9ab0; }
+  .td-pos { color: var(--accent3); }
+  .td-neg { color: var(--accent2); }
+  .td-si { color: var(--accent); font-weight: 700; }
+  .td-rank { color: var(--accent4); }
+
+  /* sensitivity bar in table */
+  .si-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+  }
+  .si-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .si-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── INSIGHT CARDS ── */
+  .insight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    border-left: 3px solid var(--accent);
+    animation: fadeIn 0.4s ease both;
+  }
+  .insight-card.warn { border-left-color: var(--accent2); }
+  .insight-card.good { border-left-color: var(--accent3); }
+  .insight-card.info { border-left-color: var(--accent4); }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .insight-card .ic-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 1.5px;
+    color: #8a9ab0;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .insight-card .ic-body {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .insight-card .ic-body strong { color: var(--accent); }
+  .insight-card.warn .ic-body strong { color: var(--accent2); }
+  .insight-card.good .ic-body strong { color: var(--accent3); }
+  .insight-card.info .ic-body strong { color: var(--accent4); }
+
+  /* loading state */
+  .loading {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: #8a9ab0;
+    padding: 40px;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  .formula-note {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: #b0c4d8;
+    background: rgba(0,212,255,0.07);
+    border: 1px solid rgba(0,212,255,0.25);
+    border-radius: 6px;
+    padding: 14px 18px;
+    line-height: 2;
+    letter-spacing: 0.3px;
+  }
+  .formula-note .f-label {
+    color: var(--accent);
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-ring"></div>
+  <div>
+    <h1>Sensitivity Analysis <span class="badge">TUBULAR BOWL CENTRIFUGE</span></h1>
+  </div>
+  <p>SEPARATION PROCESSES · GROUP PROJECT</p>
+</header>
+
+<div class="page">
+
+  <!-- BASELINE PARAMS -->
+  <div>
+    <div class="sec-header"><h2>Baseline Parameters</h2></div>
+    <div class="baseline-grid">
+      <div class="bp-card">
+        <label>SPEED</label>
+        <input type="number" id="p_RPM" value="15000">
+        <span class="unit">RPM</span>
+      </div>
+      <div class="bp-card">
+        <label>INNER RADIUS r₁</label>
+        <input type="number" id="p_rA" value="0.02" step="0.001">
+        <span class="unit">m</span>
+      </div>
+      <div class="bp-card">
+        <label>OUTER RADIUS r₂</label>
+        <input type="number" id="p_rB" value="0.05" step="0.001">
+        <span class="unit">m</span>
+      </div>
+      <div class="bp-card">
+        <label>BOWL LENGTH L</label>
+        <input type="number" id="p_L" value="0.30" step="0.01">
+        <span class="unit">m</span>
+      </div>
+      <div class="bp-card">
+        <label>PARTICLE DENSITY ρ<sub>p</sub></label>
+        <input type="number" id="p_rhoP" value="1800">
+        <span class="unit">kg/m³</span>
+      </div>
+      <div class="bp-card">
+        <label>FLUID DENSITY ρ<sub>f</sub></label>
+        <input type="number" id="p_rhoF" value="1000">
+        <span class="unit">kg/m³</span>
+      </div>
+      <div class="bp-card">
+        <label>VISCOSITY μ</label>
+        <input type="number" id="p_mu" value="0.001" step="0.0001">
+        <span class="unit">Pa·s</span>
+      </div>
+      <div class="bp-card">
+        <label>FLOW RATE Q</label>
+        <input type="number" id="p_Q" value="5" step="0.5">
+        <span class="unit">mL/s (×10⁻⁶ m³/s)</span>
+      </div>
+      <div class="bp-card">
+        <label>PARTICLE DIAMETER d<sub>p</sub></label>
+        <input type="number" id="p_dp" value="5" step="0.5">
+        <span class="unit">μm</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div>
+    <div class="sec-header"><h2>Analysis Controls</h2></div>
+    <div class="pert-row">
+      <label>PERTURBATION ±</label>
+      <div class="pert-btns">
+        <button class="pert-btn" data-val="5">5%</button>
+        <button class="pert-btn active" data-val="10">10%</button>
+        <button class="pert-btn" data-val="20">20%</button>
+        <button class="pert-btn" data-val="30">30%</button>
+        <button class="pert-btn" data-val="50">50%</button>
+      </div>
+      <label style="margin-left:20px;">OUTPUT</label>
+      <div class="output-toggle">
+        <button class="out-btn active" data-out="Qmax">Q_max</button>
+        <button class="out-btn" data-out="dpc">Cut diam. dpc</button>
+        <button class="out-btn" data-out="sigma">Sigma Σ</button>
+        <button class="out-btn" data-out="gFactor">G-factor</button>
+      </div>
+      <button class="run-btn" onclick="runSensitivity()">▶ RUN ANALYSIS</button>
+    </div>
+    <br>
+    <div class="formula-note">
+      <span class="f-label">Q_max</span> = π·L·(r₂²−r₁²)·d_p²·Δρ·ω² / (18·μ·ln(r₂/r₁)) &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span class="f-label">Σ</span> = π·L·ω²·(r₂²−r₁²) / (2·g·ln(r₂/r₁)) &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span class="f-label">d_pc</span> = √(18·μ·Q·ln(r₂/r₁) / (π·L·(r₂²−r₁²)·Δρ·ω²)) &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span class="f-label">G</span> = ω²·r₂ / g
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsSection">
+    <div class="sec-header"><h2>Results</h2></div>
+    <div id="resultsContent" class="loading">Press ▶ RUN ANALYSIS to generate results</div>
+  </div>
+
+</div>
+
+<script>
+// ── PHYSICS CORE ──
+function compute(p) {
+  const omega = p.RPM * 2 * Math.PI / 60;
+  const deltaRho = p.rhoP - p.rhoF;
+  const lnRatio = Math.log(p.rB / p.rA);
+  const V = Math.PI * (p.rB**2 - p.rA**2) * p.L;
+
+  const dp_m = p.dp * 1e-6;
+  const Q_SI = p.Q * 1e-6;
+
+  const Qmax = Math.PI * p.L * (p.rB**2 - p.rA**2) * dp_m**2 * deltaRho * omega**2
+               / (18 * p.mu * lnRatio);
+
+  const sigma = Math.PI * p.L * omega**2 * (p.rB**2 - p.rA**2)
+               / (2 * 9.81 * lnRatio);
+
+  const dpc_m = Math.sqrt(18 * p.mu * Q_SI * lnRatio /
+               (Math.PI * p.L * (p.rB**2 - p.rA**2) * deltaRho * omega**2));
+  const dpc_um = dpc_m * 1e6;
+
+  const gFactor = omega**2 * p.rB / 9.81;
+  const tRes = V / Q_SI;
+  const tSettle = 18 * p.mu * lnRatio / (dp_m**2 * deltaRho * omega**2);
+
+  return {
+    Qmax: Qmax * 1e6,   // mL/s
+    dpc: dpc_um,         // μm
+    sigma: sigma,        // m²
+    gFactor: gFactor,    // ×g
+    tRes, tSettle, omega, deltaRho, V
+  };
+}
+
+function getBaselineParams() {
+  return {
+    RPM:  +document.getElementById('p_RPM').value,
+    rA:   +document.getElementById('p_rA').value,
+    rB:   +document.getElementById('p_rB').value,
+    L:    +document.getElementById('p_L').value,
+    rhoP: +document.getElementById('p_rhoP').value,
+    rhoF: +document.getElementById('p_rhoF').value,
+    mu:   +document.getElementById('p_mu').value,
+    Q:    +document.getElementById('p_Q').value,
+    dp:   +document.getElementById('p_dp').value,
+  };
+}
+
+// ── PERTURBATION SELECTION ──
+let pertPct = 10;
+let outputKey = 'Qmax';
+
+document.querySelectorAll('.pert-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pert-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    pertPct = +btn.dataset.val;
+  });
+});
+
+document.querySelectorAll('.out-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.out-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    outputKey = btn.dataset.out;
+  });
+});
+
+// ── LABELS & UNITS ──
+const PARAM_LABELS = {
+  RPM:  'Speed (RPM)',
+  rA:   'Inner Radius r₁',
+  rB:   'Outer Radius r₂',
+  L:    'Bowl Length L',
+  rhoP: 'Particle Density ρₚ',
+  rhoF: 'Fluid Density ρ_f',
+  mu:   'Viscosity μ',
+  Q:    'Flow Rate Q',
+  dp:   'Particle Size dₚ',
+};
+
+const PARAM_UNITS = {
+  RPM: 'rpm', rA: 'm', rB: 'm', L: 'm',
+  rhoP: 'kg/m³', rhoF: 'kg/m³', mu: 'Pa·s', Q: 'mL/s', dp: 'μm'
+};
+
+const OUTPUT_LABELS = {
+  Qmax: 'Q_max (mL/s)',
+  dpc: 'Cut Diameter dpc (μm)',
+  sigma: 'Sigma Σ (m²)',
+  gFactor: 'G-factor (×g)',
+};
+
+// ── SENSITIVITY INDEX ──
+// SI = (ΔOutput/Output_base) / (ΔInput/Input_base) — normalized elasticity
+function sensitivityIndex(base, perturbed, pct) {
+  const deltaOut_pct = (perturbed - base) / Math.abs(base) * 100;
+  return deltaOut_pct / pct;
+}
+
+// ── MAIN ANALYSIS ──
+let tornChart, sweepChart;
+
+function runSensitivity() {
+  const bp = getBaselineParams();
+  const baseRes = compute(bp);
+  const baseVal = baseRes[outputKey];
+
+  const params = Object.keys(PARAM_LABELS);
+  const rows = [];
+
+  params.forEach(key => {
+    const pBase = bp[key];
+    const delta = pBase * pertPct / 100;
+
+    // +perturbation
+    const pPlus = {...bp, [key]: pBase + delta};
+    const rPlus = compute(pPlus);
+    const valPlus = rPlus[outputKey];
+
+    // -perturbation
+    const pMinus = {...bp, [key]: Math.max(pBase - delta, 1e-10)};
+    const rMinus = compute(pMinus);
+    const valMinus = rMinus[outputKey];
+
+    // Change %
+    const pctPlus  = (valPlus  - baseVal) / Math.abs(baseVal) * 100;
+    const pctMinus = (valMinus - baseVal) / Math.abs(baseVal) * 100;
+
+    // Sensitivity index: average of |pos| and |neg|
+    const si = (Math.abs(pctPlus) + Math.abs(pctMinus)) / 2 / pertPct;
+
+    rows.push({
+      key,
+      label: PARAM_LABELS[key],
+      unit: PARAM_UNITS[key],
+      baseValue: pBase,
+      outputBase: baseVal,
+      outputPlus: valPlus,
+      outputMinus: valMinus,
+      pctPlus,
+      pctMinus,
+      si,
+    });
+  });
+
+  // Sort by SI descending
+  rows.sort((a,b) => b.si - a.si);
+
+  renderResults(rows, baseVal, bp);
+}
+
+function renderResults(rows, baseVal, bp) {
+  const maxSI = rows[0].si;
+  const outLabel = OUTPUT_LABELS[outputKey];
+
+  const html = `
+    <div class="results-grid">
+      <!-- TORNADO CHART -->
+      <div class="chart-box">
+        <h3>TORNADO CHART — ${outLabel} sensitivity</h3>
+        <canvas id="tornCanvas"></canvas>
+      </div>
+      <!-- SWEEP CHART -->
+      <div class="chart-box">
+        <h3>PARAMETER SWEEP — top 3 parameters</h3>
+        <canvas id="sweepCanvas"></canvas>
+      </div>
+      <!-- DATA TABLE -->
+      <div class="table-box">
+        <h3>SENSITIVITY TABLE — ±${pertPct}% perturbation on each parameter</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>RANK</th>
+              <th>PARAMETER</th>
+              <th>BASE VALUE</th>
+              <th>OUTPUT (BASE) ${outLabel.split(' ')[0]}</th>
+              <th>OUTPUT (+${pertPct}%)</th>
+              <th>OUTPUT (−${pertPct}%)</th>
+              <th>Δ% POSITIVE</th>
+              <th>Δ% NEGATIVE</th>
+              <th>SENSITIVITY INDEX</th>
+              <th>INFLUENCE</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r,i) => {
+              const barW = (r.si / maxSI * 100).toFixed(1);
+              const barColor = i === 0 ? '#00d4ff' : i === 1 ? '#ff6b35' : '#7fff6b';
+              return `
+              <tr>
+                <td class="td-rank">#${i+1}</td>
+                <td class="td-param">${r.label}</td>
+                <td class="td-base">${formatNum(r.baseValue)} ${r.unit}</td>
+                <td class="td-base">${formatNum(baseVal)}</td>
+                <td class="td-pos">${formatNum(r.outputPlus)}</td>
+                <td class="td-neg">${formatNum(r.outputMinus)}</td>
+                <td class="td-pos">${r.pctPlus >= 0 ? '+' : ''}${r.pctPlus.toFixed(2)}%</td>
+                <td class="td-neg">${r.pctMinus >= 0 ? '+' : ''}${r.pctMinus.toFixed(2)}%</td>
+                <td class="td-si">${r.si.toFixed(3)}</td>
+                <td>
+                  <div class="si-bar-wrap">
+                    <div class="si-bar-bg">
+                      <div class="si-bar-fill" style="width:${barW}%;background:${barColor};"></div>
+                    </div>
+                    <span style="font-size:0.6rem;color:var(--muted)">${barW}%</span>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <!-- INSIGHT CARDS -->
+      <div class="table-box" style="border:none;background:transparent;padding:0;">
+        <div class="sec-header"><h2>Engineering Insights</h2></div>
+        <div class="insight-grid" id="insightGrid"></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('resultsContent').innerHTML = html;
+
+  drawTornado(rows, maxSI, outLabel);
+  drawSweep(rows.slice(0,3), bp, outLabel);
+  renderInsights(rows, bp, baseVal);
+}
+
+function formatNum(v) {
+  if (Math.abs(v) >= 1000) return v.toFixed(1);
+  if (Math.abs(v) >= 10)   return v.toFixed(3);
+  if (Math.abs(v) >= 0.01) return v.toFixed(4);
+  return v.toExponential(3);
+}
+
+// ── TORNADO CHART ──
+function drawTornado(rows, maxSI, outLabel) {
+  const ctx = document.getElementById('tornCanvas').getContext('2d');
+  if (tornChart) tornChart.destroy();
+
+  const labels = rows.map(r => r.label.replace(' (','').replace(')',''));
+  const posData = rows.map(r => +r.pctPlus.toFixed(3));
+  const negData = rows.map(r => +r.pctMinus.toFixed(3));
+
+  tornChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: `+${pertPct}% perturbation`, data: posData,
+          backgroundColor: 'rgba(127,255,107,0.5)', borderColor: '#7fff6b', borderWidth: 1 },
+        { label: `−${pertPct}% perturbation`, data: negData,
+          backgroundColor: 'rgba(255,107,53,0.5)', borderColor: '#ff6b35', borderWidth: 1 },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      animation: { duration: 600 },
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color:'#8a9ab0', font:{family:'Space Mono',size:9} } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.x >= 0 ? '+' : ''}${ctx.parsed.x.toFixed(2)}%`
+          }
+        }
+      },
+      scales: {
+        x: { ticks:{color:'#8a9ab0',font:{family:'Space Mono',size:9}}, grid:{color:'#1e2330'},
+             title:{display:true,text:'% Change in '+outLabel.split(' ')[0],color:'#8a9ab0',font:{family:'Space Mono',size:9}} },
+        y: { ticks:{color:'#e8eaf0',font:{family:'Space Mono',size:8}}, grid:{color:'#1e2330'} }
+      }
+    }
+  });
+}
+
+// ── SWEEP CHART (top 3 params, sweep −50% to +50%) ──
+function drawSweep(topRows, bp, outLabel) {
+  const ctx = document.getElementById('sweepCanvas').getContext('2d');
+  if (sweepChart) sweepChart.destroy();
+
+  const colors = ['#00d4ff','#ff6b35','#7fff6b'];
+  const datasets = topRows.map((r, idx) => {
+    const pts = [];
+    for (let p = -50; p <= 50; p += 5) {
+      const val = bp[r.key] * (1 + p/100);
+      const pp = {...bp, [r.key]: Math.max(val, 1e-10)};
+      const res = compute(pp);
+      const outChg = (res[outputKey] - r.outputBase) / Math.abs(r.outputBase) * 100;
+      pts.push({x: p, y: +outChg.toFixed(3)});
+    }
+    return {
+      label: r.label,
+      data: pts,
+      borderColor: colors[idx],
+      backgroundColor: colors[idx]+'22',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2,
+    };
+  });
+
+  // Zero line reference
+  datasets.push({
+    label: 'baseline',
+    data: [{x:-50,y:0},{x:50,y:0}],
+    borderColor: '#1e2330',
+    borderWidth: 1,
+    borderDash: [4,4],
+    pointRadius: 0,
+    fill: false,
+  });
+
+  sweepChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      animation: { duration: 600 },
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color:'#8a9ab0', font:{family:'Space Mono',size:9},
+          filter: item => item.datasetIndex < topRows.length } }
+      },
+      scales: {
+        x: { type:'linear', min:-50, max:50,
+          ticks:{color:'#8a9ab0',font:{family:'Space Mono',size:9}}, grid:{color:'#1e2330'},
+          title:{display:true,text:'% Change in Parameter',color:'#8a9ab0',font:{family:'Space Mono',size:9}} },
+        y: { ticks:{color:'#8a9ab0',font:{family:'Space Mono',size:9}}, grid:{color:'#1e2330'},
+          title:{display:true,text:`% Change in ${outLabel.split(' ')[0]}`,color:'#8a9ab0',font:{family:'Space Mono',size:9}} }
+      }
+    }
+  });
+}
+
+// ── INSIGHT CARDS ──
+function renderInsights(rows, bp, baseVal) {
+  const top = rows[0];
+  const top2 = rows[1];
+  const least = rows[rows.length - 1];
+
+  // Find monotonic direction of top param
+  const dir = top.pctPlus > 0 ? 'increases' : 'decreases';
+
+  // Check if Q > Qmax at baseline
+  const bRes = compute(bp);
+  const separation_ok = bp.Q * 1e-6 <= bRes.Qmax * 1e-6;
+
+  const cards = [
+    {
+      type: '',
+      title: 'DOMINANT PARAMETER',
+      body: `<strong>${top.label}</strong> is the most influential parameter with a sensitivity index of <strong>${top.si.toFixed(2)}</strong>. A ±${pertPct}% change in this parameter causes up to <strong>${Math.max(Math.abs(top.pctPlus),Math.abs(top.pctMinus)).toFixed(1)}%</strong> change in ${OUTPUT_LABELS[outputKey].split(' ')[0]}.`
+    },
+    {
+      type: 'info',
+      title: 'SECOND KEY PARAMETER',
+      body: `<strong>${top2.label}</strong> ranks #2 with SI = <strong>${top2.si.toFixed(2)}</strong>. Together, the top two parameters explain most of the output variability, focus your design control on these.`
+    },
+    {
+      type: 'good',
+      title: 'LEAST SENSITIVE',
+      body: `<strong>${least.label}</strong> has the lowest sensitivity (SI = <strong>${least.si.toFixed(3)}</strong>). Changes to this parameter have minimal impact, you have flexibility here without sacrificing performance.`
+    },
+    {
+      type: separation_ok ? 'good' : 'warn',
+      title: 'SEPARATION STATUS',
+      body: separation_ok
+        ? `At baseline, <strong>Q ≤ Q_max</strong>, your centrifuge achieves good separation for the target particle. Increasing flow rate is the fastest way to degrade performance.`
+        : `At baseline, <strong>Q > Q_max</strong>, separation is insufficient. Consider reducing flow rate or increasing RPM to fix this.`
+    },
+    {
+      type: 'info',
+      title: 'DESIGN RECOMMENDATION',
+      body: `Since <strong>${top.label}</strong> dominates, small manufacturing tolerances in this parameter will significantly affect output. Tight control on <strong>${top.label}</strong> is critical in real operations.`
+    },
+    {
+      type: '',
+      title: 'SIGMA CONCEPT',
+      body: `The Sigma (Σ) factor captures all geometric and speed effects in one number, it equals the equivalent settling area of the centrifuge. Higher Σ = better separation capacity independent of particle properties.`
+    },
+  ];
+
+  const grid = document.getElementById('insightGrid');
+  grid.innerHTML = cards.map((c,i) => `
+    <div class="insight-card ${c.type}" style="animation-delay:${i*0.07}s">
+      <div class="ic-title">${c.title}</div>
+      <div class="ic-body">${c.body}</div>
+    </div>
+  `).join('');
+}
+
+// Auto-run on load
+window.addEventListener('load', () => runSensitivity());
+</script>
+</body>
+</html>

@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tubular Bowl Centrifuge Simulator</title>
+<style>
+:root {
+  --bg: #f4f7f8;
+  --panel: #ffffff;
+  --panel-2: #edf3f4;
+  --ink: #172026;
+  --muted: #617077;
+  --line: #d9e3e5;
+  --line-strong: #b7c8cc;
+  --teal: #008b8f;
+  --teal-dark: #00646a;
+  --green: #1c9b61;
+  --orange: #d96b22;
+  --red: #c94636;
+  --yellow: #d59c11;
+  --violet: #6d5bd0;
+  --shadow: 0 18px 45px rgba(30, 52, 58, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.72), rgba(244,247,248,0.92)),
+    repeating-linear-gradient(90deg, rgba(0,139,143,0.035) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(0deg, rgba(0,139,143,0.03) 0 1px, transparent 1px 42px),
+    var(--bg);
+  font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+  letter-spacing: 0;
+}
+
+button, input, select { font: inherit; }
+
+header {
+  min-height: 72px;
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #f8fbfc;
+  background: #172026;
+  border-bottom: 4px solid var(--teal);
+}
+
+.mark {
+  width: 42px;
+  height: 42px;
+  border: 2px solid rgba(255,255,255,0.7);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.mark::before,
+.mark::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+
+.mark::before {
+  width: 24px;
+  height: 24px;
+  border: 2px dashed var(--teal);
+  animation: spin 5.8s linear infinite;
+}
+
+.mark::after {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(0,139,143,0.35);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.title-block h1 {
+  margin: 0;
+  font-size: clamp(1rem, 2.2vw, 1.35rem);
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.title-block p {
+  margin: 4px 0 0;
+  color: #b7c8cc;
+  font-size: 0.78rem;
+}
+
+.header-meta {
+  margin-left: auto;
+  color: #b7c8cc;
+  font-size: 0.72rem;
+  text-align: right;
+  line-height: 1.35;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  max-width: 1620px;
+  margin: 0 auto;
+}
+
+.controls,
+.workspace > section,
+.visual-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.controls {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  padding: 14px;
+}
+
+.workspace {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.section-title {
+  margin: 0 0 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.section-title span {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.control-group {
+  padding: 12px 0 10px;
+  border-top: 1px solid var(--line);
+}
+
+.control-group:first-child { border-top: 0; padding-top: 0; }
+
+.field {
+  margin-top: 10px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+label {
+  color: #3a4b52;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.unit {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.67rem;
+  font-weight: 600;
+}
+
+input[type="number"],
+select {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: #fbfdfd;
+  color: var(--ink);
+  padding: 6px 8px;
+  outline: none;
+}
+
+input[type="number"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="number"]:focus,
+select:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(0,139,143,0.15);
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--teal);
+}
+
+.workspace > section {
+  padding: 14px;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.1fr) minmax(280px, 1.4fr);
+  gap: 14px;
+}
+
+.status-panel {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f8fbfb;
+  padding: 14px;
+}
+
+.status-panel.good {
+  border-color: rgba(28,155,97,0.45);
+  background: linear-gradient(180deg, rgba(28,155,97,0.10), rgba(255,255,255,0.9));
+}
+
+.status-panel.bad {
+  border-color: rgba(201,70,54,0.5);
+  background: linear-gradient(180deg, rgba(201,70,54,0.10), rgba(255,255,255,0.9));
+}
+
+.status-panel.edge {
+  border-color: rgba(213,156,17,0.55);
+  background: linear-gradient(180deg, rgba(213,156,17,0.13), rgba(255,255,255,0.9));
+}
+
+.status-kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-main {
+  margin: 6px 0 4px;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.status-copy {
+  margin: 0;
+  color: #3a4b52;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.condition {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.82);
+  border: 1px solid var(--line);
+  font-family: Consolas, Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.threshold-box {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.gauge {
+  position: relative;
+  height: 42px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(90deg, rgba(28,155,97,0.12) 0 66.66%, rgba(213,156,17,0.13) 66.66% 100%),
+    #fff;
+}
+
+.gauge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 66.666%;
+  width: 2px;
+  background: #172026;
+  opacity: 0.7;
+}
+
+.gauge-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(0,139,143,0.35), rgba(0,139,143,0.72));
+  transition: width 180ms ease, background 180ms ease;
+}
+
+.gauge-fill.bad { background: linear-gradient(90deg, rgba(217,107,34,0.35), rgba(201,70,54,0.85)); }
+
+.needle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: #000;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.75);
+  transition: left 180ms ease;
+}
+
+.gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric {
+  min-height: 82px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfd;
+  padding: 10px;
+  display: grid;
+  align-content: space-between;
+}
+
+.metric .label {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.metric .value {
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: clamp(0.98rem, 1.55vw, 1.32rem);
+  line-height: 1;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: normal;
+}
+
+.metric .value.good { color: var(--green); }
+.metric .value.bad { color: var(--red); }
+.metric .value.teal { color: var(--teal-dark); }
+.metric .suffix {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.chart-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfdfd;
+  min-width: 0;
+}
+
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #3a4b52;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.chart-head span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+}
+
+.chart-canvas {
+  height: 260px;
+}
+
+.visuals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.visual-panel {
+  padding: 12px;
+  min-width: 0;
+}
+
+.canvas-wrap {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.76), rgba(237,243,244,0.78)),
+    #f6fafb;
+}
+
+.process-canvas {
+  height: 380px;
+}
+
+.viz-toolbar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.icon-btn {
+  min-width: 42px;
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.92);
+  color: var(--ink);
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+
+.icon-btn.primary {
+  min-width: 112px;
+  color: #fff;
+  border-color: var(--teal-dark);
+  background: var(--teal);
+}
+
+.icon-btn:hover { filter: brightness(0.97); }
+
+.legend {
+  pointer-events: none;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  color: #3a4b52;
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: rgba(255,255,255,0.84);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+
+.equations {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.equation {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfd;
+  padding: 10px;
+  min-height: 78px;
+}
+
+.equation h3 {
+  margin: 0 0 6px;
+  color: var(--teal-dark);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.equation p {
+  margin: 0;
+  color: #34454c;
+  font-family: Consolas, Menlo, monospace;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.eq-render {
+  margin: 4px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eq-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ev { font-family: Georgia, 'Times New Roman', serif; font-size: 13px; font-style: italic; fill: #172026; }
+.en { font-family: Georgia, 'Times New Roman', serif; font-size: 12px; fill: #172026; }
+.esub { font-family: Georgia, 'Times New Roman', serif; font-size: 9px; fill: #172026; }
+.esup { font-family: Georgia, 'Times New Roman', serif; font-size: 9px; fill: #172026; }
+
+.eq-desc {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 1180px) {
+  .app { grid-template-columns: 1fr; }
+  .controls { position: static; max-height: none; }
+  .dashboard, .visuals { grid-template-columns: 1fr; }
+  .equations { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 820px) {
+  header { align-items: flex-start; }
+  .header-meta { display: none; }
+  .app { padding: 10px; }
+  .metric-grid, .charts, .equations { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr 92px; }
+  .process-canvas { height: 330px; }
+  .viz-toolbar {
+    position: static;
+    padding: 8px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+  }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark" aria-hidden="true"></div>
+  <div class="title-block">
+    <h1>Tubular Bowl Centrifuge Simulator</h1>
+    <p>Blood plasma separation with residence-time threshold and particle trajectories</p>
+  </div>
+  <div class="header-meta">
+    ChE206 project demo<br>
+    240008016 | 019 | 020 | 038
+  </div>
+</header>
+
+<main class="app">
+  <aside class="controls">
+    <div class="control-group">
+      <div class="section-title">Preset</div>
+      <select id="preset">
+        <option value="demo">Blood threshold demo</option>
+        <option value="blood">Whole blood report baseline</option>
+        <option value="silica">Water and silica</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <div class="section-title">Bowl Geometry</div>
+      <div id="geometryControls"></div>
+    </div>
+
+    <div class="control-group">
+      <div class="section-title">Operating Conditions</div>
+      <div id="operationControls"></div>
+    </div>
+
+    <div class="control-group">
+      <div class="section-title">Particle and Fluid</div>
+      <div id="materialControls"></div>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <section>
+      <div class="section-title">Equations Used</div>
+      <div class="equations">
+
+        <!-- 1. Radial Velocity -->
+        <div class="equation">
+          <h3>Radial Velocity of Particle</h3>
+          <div class="eq-render">
+            <svg viewBox="0 0 230 62" xmlns="http://www.w3.org/2000/svg" class="eq-svg">
+              <!-- v_r = -->
+              <text x="2" y="38" class="ev">v</text><text x="13" y="43" class="esub">r</text>
+              <text x="20" y="38" class="ev"> =</text>
+              <!-- numerator: d_p^2 (ρ_p − ρ_f) ω^2 r -->
+              <text x="44" y="24" class="en">d</text><text x="53" y="28" class="esub">p</text><text x="59" y="18" class="esup">2</text>
+              <text x="65" y="24" class="en">(ρ</text><text x="81" y="28" class="esub">p</text>
+              <text x="87" y="24" class="en"> − ρ</text><text x="109" y="28" class="esub">f</text>
+              <text x="115" y="24" class="en">) ω</text><text x="136" y="18" class="esup">2</text>
+              <text x="142" y="24" class="en"> r</text>
+              <!-- fraction bar -->
+              <line x1="40" y1="33" x2="158" y2="33" stroke="#34454c" stroke-width="1.2"/>
+              <!-- denominator: 18μ -->
+              <text x="82" y="52" class="en">18μ</text>
+            </svg>
+          </div>
+          <p class="eq-desc">Modified Stokes' law in centrifugal field</p>
+        </div>
+
+        <!-- 2. Settling Time -->
+        <div class="equation">
+          <h3>Settling Time of Particle</h3>
+          <div class="eq-render">
+            <svg viewBox="0 0 240 66" xmlns="http://www.w3.org/2000/svg" class="eq-svg">
+              <text x="2" y="40" class="ev">t</text><text x="11" y="45" class="esub">settle</text>
+              <text x="42" y="40" class="ev"> =</text>
+              <!-- numerator: 18μ ln(r2/r1) -->
+              <text x="58" y="22" class="en">18μ ln(r</text>
+              <text x="111" y="26" class="esub">2</text>
+              <text x="118" y="22" class="en">/r</text>
+              <text x="129" y="26" class="esub">1</text>
+              <text x="135" y="22" class="en">)</text>
+              <!-- fraction bar -->
+              <line x1="54" y1="32" x2="196" y2="32" stroke="#34454c" stroke-width="1.2"/>
+              <!-- denominator: d_p^2 Δρ ω^2 -->
+              <text x="56" y="52" class="en">d</text><text x="65" y="56" class="esub">p</text><text x="71" y="46" class="esup">2</text>
+              <text x="77" y="52" class="en"> Δρ ω</text><text x="108" y="46" class="esup">2</text>
+            </svg>
+          </div>
+          <p class="eq-desc">Time for particle to travel r₁ → r₂</p>
+        </div>
+
+        <!-- 3. Residence Time -->
+        <div class="equation">
+          <h3>Residence Time of Liquid</h3>
+          <div class="eq-render">
+            <svg viewBox="0 0 210 66" xmlns="http://www.w3.org/2000/svg" class="eq-svg">
+              <text x="2" y="40" class="ev">t</text><text x="11" y="45" class="esub">res</text>
+              <text x="32" y="40" class="ev"> =</text>
+              <!-- numerator: πL(r2² − r1²) -->
+              <text x="50" y="22" class="en">π L (r</text>
+              <text x="90" y="26" class="esub">2</text><text x="96" y="17" class="esup">2</text>
+              <text x="103" y="22" class="en"> − r</text>
+              <text x="122" y="26" class="esub">1</text><text x="128" y="17" class="esup">2</text>
+              <text x="134" y="22" class="en">)</text>
+              <!-- fraction bar -->
+              <line x1="46" y1="32" x2="148" y2="32" stroke="#34454c" stroke-width="1.2"/>
+              <!-- denominator: Q -->
+              <text x="91" y="52" class="en">Q</text>
+            </svg>
+          </div>
+          <p class="eq-desc">Bowl volume V = πL(r₂²−r₁²) divided by flow</p>
+        </div>
+
+        <!-- 4. Maximum Flow Rate -->
+        <div class="equation">
+          <h3>Maximum Flow Rate Q<sub style="font-size:0.65rem">max</sub></h3>
+          <div class="eq-render">
+            <svg viewBox="0 0 260 66" xmlns="http://www.w3.org/2000/svg" class="eq-svg">
+              <text x="2" y="40" class="ev">Q</text><text x="15" y="45" class="esub">max</text>
+              <text x="42" y="40" class="ev"> =</text>
+              <!-- numerator -->
+              <text x="56" y="22" class="en">π L ω</text><text x="92" y="17" class="esup">2</text>
+              <text x="99" y="22" class="en">(r</text>
+              <text x="112" y="26" class="esub">2</text><text x="118" y="17" class="esup">2</text>
+              <text x="124" y="22" class="en">−r</text>
+              <text x="138" y="26" class="esub">1</text><text x="144" y="17" class="esup">2</text>
+              <text x="150" y="22" class="en">) d</text>
+              <text x="168" y="26" class="esub">p</text><text x="174" y="17" class="esup">2</text>
+              <text x="180" y="22" class="en"> Δρ</text>
+              <!-- fraction bar -->
+              <line x1="52" y1="32" x2="238" y2="32" stroke="#34454c" stroke-width="1.2"/>
+              <!-- denominator -->
+              <text x="82" y="52" class="en">18μ ln(r</text>
+              <text x="138" y="56" class="esub">2</text>
+              <text x="144" y="52" class="en">/r</text>
+              <text x="154" y="56" class="esub">1</text>
+              <text x="160" y="52" class="en">)</text>
+            </svg>
+          </div>
+          <p class="eq-desc">From t<sub>res</sub> = t<sub>settle</sub> at critical condition</p>
+        </div>
+
+        <!-- 5. Sigma Form -->
+        <div class="equation">
+          <h3>Sigma Form &amp; Σ Value</h3>
+          <div class="eq-render">
+            <svg viewBox="0 0 270 80" xmlns="http://www.w3.org/2000/svg" class="eq-svg">
+              <!-- Q = vg Σ -->
+              <text x="2" y="22" class="en" style="font-size:11px">Q = v</text>
+              <text x="40" y="26" class="esub" style="font-size:9px">g</text>
+              <text x="46" y="22" class="en" style="font-size:11px"> Σ</text>
+              <!-- Σ = ... fraction -->
+              <text x="2" y="52" class="ev">Σ =</text>
+              <!-- numerator -->
+              <text x="38" y="38" class="en">π L ω</text><text x="73" y="32" class="esup">2</text>
+              <text x="79" y="38" class="en">(r</text>
+              <text x="92" y="42" class="esub">2</text><text x="98" y="32" class="esup">2</text>
+              <text x="104" y="38" class="en">−r</text>
+              <text x="118" y="42" class="esub">1</text><text x="124" y="32" class="esup">2</text>
+              <text x="130" y="38" class="en">)</text>
+              <!-- fraction bar -->
+              <line x1="34" y1="46" x2="198" y2="46" stroke="#34454c" stroke-width="1.2"/>
+              <!-- denominator -->
+              <text x="48" y="64" class="en">g ln(r</text>
+              <text x="90" y="68" class="esub">2</text>
+              <text x="96" y="64" class="en">/r</text>
+              <text x="106" y="68" class="esub">1</text>
+              <text x="112" y="64" class="en">)</text>
+            </svg>
+          </div>
+          <p class="eq-desc">Σ = equivalent gravity settling area (m²)</p>
+        </div>
+
+      </div>
+    </section>
+
+    <section>
+      <div class="dashboard">
+        <div id="statusPanel" class="status-panel good">
+          <p class="status-kicker">Separation verdict</p>
+          <div id="statusMain" class="status-main">Computing</div>
+          <p id="statusCopy" class="status-copy"></p>
+          <div class="condition" id="conditionText"></div>
+        </div>
+
+        <div class="threshold-box">
+          <div class="section-title">Flow Threshold <span>Q must stay at or below Qmax</span></div>
+          <div class="gauge" aria-label="Flow threshold gauge">
+            <div id="gaugeFill" class="gauge-fill"></div>
+            <div id="needle" class="needle"></div>
+          </div>
+          <div class="gauge-labels">
+            <span>0</span>
+            <span>Qmax threshold</span>
+            <span>1.5 x Qmax</span>
+          </div>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="label">Q actual</div>
+              <div id="mQ" class="value teal">--<span class="suffix">mL/s</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">Qmax threshold</div>
+              <div id="mQmax" class="value good">--<span class="suffix">mL/s</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">t residence</div>
+              <div id="mTres" class="value teal">--<span class="suffix">s</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">t settling</div>
+              <div id="mTsettle" class="value">--<span class="suffix">s</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Data Visibility <span>threshold curves update instantly</span></div>
+      <div class="metric-grid" style="margin-bottom: 12px;">
+        <div class="metric">
+          <div class="label">t_res / t_settle</div>
+          <div id="mRatio" class="value">--<span class="suffix">x</span></div>
+        </div>
+        <div class="metric">
+          <div class="label">Cut diameter dpc</div>
+          <div id="mDpc" class="value">--<span class="suffix">um</span></div>
+        </div>
+        <div class="metric">
+          <div class="label">Sigma area</div>
+          <div id="mSigma" class="value">--<span class="suffix">m2</span></div>
+        </div>
+        <div class="metric">
+          <div class="label">G-factor</div>
+          <div id="mG" class="value">--<span class="suffix">x g</span></div>
+        </div>
+      </div>
+      <div class="charts">
+        <div class="chart-card">
+          <div class="chart-head">Qmax vs particle size <span>actual Q line shows pass/fail</span></div>
+          <canvas id="qChart" class="chart-canvas"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">Cut diameter vs speed <span>captured when dp >= dpc</span></div>
+          <canvas id="dpcChart" class="chart-canvas"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Particle Path Visibility <span>2D section and interactive 3D process view</span></div>
+      <div class="visuals">
+        <div class="visual-panel">
+          <div class="chart-head">2D bowl cross-section <span>path endpoint marks capture or escape</span></div>
+          <div class="canvas-wrap">
+            <canvas id="path2d" class="process-canvas"></canvas>
+            <div class="viz-toolbar">
+              <div class="button-row">
+                <button id="startBtn2d" class="icon-btn primary" type="button" title="Start particle animation">&#9654; Start</button>
+                <button id="resetBtn2d" class="icon-btn" type="button" title="Reset animation">&#8634;</button>
+              </div>
+              <div class="legend">
+                <span><i class="dot" style="background:#d96b22"></i>0.5 dp</span>
+                <span><i class="dot" style="background:#008b8f"></i>dp</span>
+                <span><i class="dot" style="background:#1c9b61"></i>2 dp</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="visual-panel">
+          <div class="chart-head">3D centrifuge view <span>drag to rotate, wheel to zoom</span></div>
+          <div class="canvas-wrap">
+            <canvas id="path3d" class="process-canvas"></canvas>
+            <div class="viz-toolbar">
+              <div class="button-row">
+                <button id="startBtn3d" class="icon-btn primary" type="button" title="Start 3D animation">&#9654; Start</button>
+                <button id="resetBtn3d" class="icon-btn" type="button" title="Reset animation">&#8634;</button>
+              </div>
+              <div class="legend">
+                <span><i class="dot" style="background:#008b8f"></i>helical travel</span>
+                <span><i class="dot" style="background:#c94636"></i>wall threshold</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+const G = 9.81;
+const TWO_PI = Math.PI * 2;
+const COLORS = {
+  orange: "#d96b22",
+  teal: "#008b8f",
+  green: "#1c9b61",
+  red: "#c94636",
+  yellow: "#d59c11",
+  ink: "#172026",
+  muted: "#617077",
+  line: "#d9e3e5",
+  violet: "#6d5bd0"
+};
+
+const PRESETS = {
+  demo: {
+    L: 0.73,
+    r1: 0.022,
+    r2: 0.0381,
+    rpm: 15000,
+    qMl: 1000.00,
+    dp: 8,
+    rhoP: 1096,
+    rhoF: 1025,
+    mu: 0.0015
+  },
+  blood: {
+    L: 0.73,
+    r1: 0.022,
+    r2: 0.0381,
+    rpm: 15000,
+    qMl: 1000,
+    dp: 8,
+    rhoP: 1096,
+    rhoF: 1025,
+    mu: 0.0015
+  },
+  silica: {
+    L: 0.50,
+    r1: 0.020,
+    r2: 0.040,
+    rpm: 10000,
+    qMl: 5000,
+    dp: 5,
+    rhoP: 2650,
+    rhoF: 998,
+    mu: 0.001
+  }
+};
+
+const CONTROL_GROUPS = {
+  geometryControls: [
+    ["L", "Length L", "m", 0.10, 2.00, 0.01, 2],
+    ["r1", "Inner radius r1", "m", 0.005, 0.090, 0.001, 3],
+    ["r2", "Outer radius r2", "m", 0.010, 0.150, 0.001, 4]
+  ],
+  operationControls: [
+    ["rpm", "Speed N", "RPM", 1000, 50000, 100, 0],
+    ["qMl", "Flow rate Q", "mL/s", 0.01, 5000.00, 0.01, 2]
+  ],
+  materialControls: [
+    ["dp", "Particle diameter dp", "um", 0.5, 20.0, 0.1, 1],
+    ["rhoP", "Particle density rho_p", "kg/m3", 900, 3000, 1, 0],
+    ["rhoF", "Fluid density rho_f", "kg/m3", 800, 2000, 1, 0],
+    ["mu", "Viscosity mu", "Pa.s", 0.0005, 0.0200, 0.0001, 4]
+  ]
+};
+
+const elements = {};
+const view3d = { yaw: -0.72, pitch: 0.42, zoom: 1.0, drag: false, lastX: 0, lastY: 0 };
+const animation = { running: false, progress: 0, start: 0, duration: 5200, raf: 0 };
+let latest = null;
+
+function init() {
+  cacheElements();
+  buildControls();
+  applyPreset("demo");
+  bindEvents();
+  update();
+  requestAnimationFrame(drawFrame);
+}
+
+function cacheElements() {
+  [
+    "preset", "statusPanel", "statusMain", "statusCopy", "conditionText",
+    "gaugeFill", "needle", "mQ", "mQmax", "mTres", "mTsettle",
+    "mRatio", "mDpc", "mSigma", "mG", "qChart", "dpcChart",
+    "path2d", "path3d", "startBtn2d", "resetBtn2d", "startBtn3d", "resetBtn3d"
+  ].forEach((id) => { elements[id] = document.getElementById(id); });
+}
+
+function buildControls() {
+  Object.entries(CONTROL_GROUPS).forEach(([targetId, fields]) => {
+    const target = document.getElementById(targetId);
+    target.innerHTML = fields.map(([key, label, unit, min, max, step, decimals]) => `
+      <div class="field">
+        <div class="field-row">
+          <label for="num-${key}">${label}<span class="unit">${unit}</span></label>
+          <input id="num-${key}" type="number" min="${min}" max="${max}" step="${step}" data-key="${key}" data-decimals="${decimals}">
+        </div>
+        <input id="range-${key}" type="range" min="${min}" max="${max}" step="${step}" data-key="${key}">
+      </div>
+    `).join("");
+  });
+}
+
+function bindEvents() {
+  document.querySelectorAll("input[data-key]").forEach((input) => {
+    input.addEventListener("input", onInput);
+    input.addEventListener("change", onInput);
+  });
+
+  elements.preset.addEventListener("change", (event) => {
+    const value = event.target.value;
+    if (value !== "custom") applyPreset(value);
+  });
+
+  [elements.startBtn2d, elements.startBtn3d].forEach((button) => {
+    button.addEventListener("click", startAnimation);
+  });
+  [elements.resetBtn2d, elements.resetBtn3d].forEach((button) => {
+    button.addEventListener("click", resetAnimation);
+  });
+
+  const canvas = elements.path3d;
+  canvas.addEventListener("pointerdown", (event) => {
+    view3d.drag = true;
+    view3d.lastX = event.clientX;
+    view3d.lastY = event.clientY;
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!view3d.drag) return;
+    const dx = event.clientX - view3d.lastX;
+    const dy = event.clientY - view3d.lastY;
+    view3d.yaw += dx * 0.010;
+    view3d.pitch = clamp(view3d.pitch + dy * 0.008, -1.1, 1.1);
+    view3d.lastX = event.clientX;
+    view3d.lastY = event.clientY;
+    drawVisuals();
+  });
+  canvas.addEventListener("pointerup", () => { view3d.drag = false; });
+  canvas.addEventListener("pointercancel", () => { view3d.drag = false; });
+  canvas.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    view3d.zoom = clamp(view3d.zoom - event.deltaY * 0.001, 0.62, 1.75);
+    drawVisuals();
+  }, { passive: false });
+
+  window.addEventListener("resize", () => {
+    drawAll();
+  });
+}
+
+function onInput(event) {
+  const key = event.target.dataset.key;
+  const linkedId = event.target.type === "range" ? `num-${key}` : `range-${key}`;
+  const linked = document.getElementById(linkedId);
+  const value = Number(event.target.value);
+  if (Number.isFinite(value)) {
+    linked.value = value;
+    if (event.target.type !== "range") {
+      event.target.value = formatControl(value, Number(event.target.dataset.decimals || 3));
+    }
+  }
+  elements.preset.value = "custom";
+  animation.progress = 0;
+  update();
+}
+
+function applyPreset(name) {
+  const preset = PRESETS[name] || PRESETS.blood;
+  Object.entries(preset).forEach(([key, value]) => {
+    const num = document.getElementById(`num-${key}`);
+    const range = document.getElementById(`range-${key}`);
+    if (!num || !range) return;
+    num.value = formatControl(value, Number(num.dataset.decimals || 3));
+    range.value = value;
+  });
+  elements.preset.value = name;
+  animation.progress = 0;
+  update();
+}
+
+function getParams() {
+  const data = {};
+  Object.values(CONTROL_GROUPS).flat().forEach(([key]) => {
+    data[key] = Number(document.getElementById(`num-${key}`).value);
+  });
+  data.Q = data.qMl * 1e-6;
+  return data;
+}
+
+function compute(p) {
+  const omega = p.rpm * TWO_PI / 60;
+  const dRho = p.rhoP - p.rhoF;
+  const lnR = Math.log(p.r2 / p.r1);
+  const volume = Math.PI * p.L * (p.r2 * p.r2 - p.r1 * p.r1);
+  const dpM = p.dp * 1e-6;
+  const tRes = volume / p.Q;
+  const tSettle = (18 * p.mu * lnR) / (dpM * dpM * dRho * omega * omega);
+  const qMax = volume / tSettle;
+  const sigma = Math.PI * p.L * omega * omega * (p.r2 * p.r2 - p.r1 * p.r1) / (G * lnR);
+  const gFactor = omega * omega * ((p.r1 + p.r2) / 2) / G;
+  const dpc = Math.sqrt((18 * p.mu * p.Q * lnR) /
+    (Math.PI * p.L * (p.r2 * p.r2 - p.r1 * p.r1) * dRho * omega * omega)) * 1e6;
+  return { omega, dRho, lnR, volume, tRes, tSettle, qMax, sigma, gFactor, dpc };
+}
+
+function validate(p) {
+  if (!Number.isFinite(p.L) || p.L <= 0) return "Length must be positive.";
+  if (!Number.isFinite(p.r1) || !Number.isFinite(p.r2) || p.r1 <= 0 || p.r2 <= 0) return "Radii must be positive.";
+  if (p.r1 >= p.r2) return "Need inner radius r1 to be less than outer radius r2.";
+  if (!Number.isFinite(p.Q) || p.Q <= 0) return "Flow rate must be positive.";
+  if (!Number.isFinite(p.dp) || p.dp <= 0) return "Particle diameter must be positive.";
+  if (p.rhoP <= p.rhoF) return "Need particle density greater than fluid density for outward settling.";
+  if (p.mu <= 0) return "Viscosity must be positive.";
+  if (p.rpm <= 0) return "Rotational speed must be positive.";
+  return "";
+}
+
+function update() {
+  const p = getParams();
+  const error = validate(p);
+  if (error) {
+    latest = { p, res: null, error };
+    updateInvalid(error);
+    drawAll();
+    return;
+  }
+
+  const res = compute(p);
+  latest = { p, res, error: "" };
+  updateReadouts(p, res);
+  drawAll();
+}
+
+function updateInvalid(message) {
+  elements.statusPanel.className = "status-panel bad";
+  elements.statusMain.textContent = "Invalid Inputs";
+  elements.statusCopy.textContent = message;
+  elements.conditionText.textContent = "Check geometry and material inputs before running the trajectory.";
+  ["mQ", "mQmax", "mTres", "mTsettle", "mRatio", "mDpc", "mSigma", "mG"].forEach((id) => {
+    elements[id].innerHTML = `--<span class="suffix"></span>`;
+  });
+}
+
+function updateReadouts(p, res) {
+  const good = res.tRes + 1e-9 >= res.tSettle;
+  const edge = Math.abs(res.tRes - res.tSettle) / res.tSettle < 0.005;
+  const qRatio = p.Q / res.qMax;
+  const timeRatio = res.tRes / res.tSettle;
+  const qDiffPct = Math.abs(1 - qRatio) * 100;
+
+  elements.statusPanel.className = `status-panel ${edge ? "edge" : good ? "good" : "bad"}`;
+  elements.statusMain.textContent = edge ? "At Threshold" : good ? "Good Separation" : "Poor Separation";
+  if (good) {
+    elements.statusCopy.textContent = edge
+      ? "The flow is exactly on the critical boundary: acceptable, but with no practical safety margin."
+      : `Residence time is ${timeRatio.toFixed(2)} times the settling time. Q/Qmax = ${ratioText(qRatio)}, so the flow is below the threshold.`;
+  } else {
+    elements.statusCopy.textContent = `Residence time is too short. Flow is ${qDiffPct.toFixed(1)}% above Qmax, so particles can leave before reaching the wall.`;
+  }
+
+  elements.conditionText.innerHTML =
+    `Good if t_res &gt;= t_settle<br>` +
+    `${fmt(res.tRes, 3)} s ${good ? "&gt;=" : "&lt;"} ${fmt(res.tSettle, 3)} s<br>` +
+    `Equivalent flow rule: Q ${good ? "&lt;=" : "&gt;"} Qmax`;
+
+  setMetric("mQ", p.qMl, "mL/s", qRatio <= 1 ? "teal" : "bad", 3);
+  setMetric("mQmax", res.qMax * 1e6, "mL/s", "good", 3);
+  setMetric("mTres", res.tRes, "s", good ? "good" : "bad", 2);
+  setMetric("mTsettle", res.tSettle, "s", "", 2);
+  setMetric("mRatio", timeRatio, "x", good ? "good" : "bad", 2);
+  setMetric("mDpc", res.dpc, "um", p.dp >= res.dpc ? "good" : "bad", 2);
+  setMetric("mSigma", res.sigma, "m2", "", 2, true);
+  setMetric("mG", res.gFactor, "x g", "", 0);
+
+  const gaugeMax = 1.5;
+  const fillPct = clamp(qRatio / gaugeMax, 0, 1) * 100;
+  const needlePct = clamp(qRatio / gaugeMax, 0, 1) * 100;
+  elements.gaugeFill.style.width = `${fillPct}%`;
+  elements.gaugeFill.classList.toggle("bad", qRatio > 1);
+  elements.needle.style.left = `${needlePct}%`;
+}
+
+function setMetric(id, value, suffix, cls, decimals, expo) {
+  const number = expo ? Number(value).toExponential(2) : smartFmt(value, decimals);
+  elements[id].className = `value ${cls || ""}`;
+  elements[id].innerHTML = `${number}<span class="suffix">${suffix}</span>`;
+}
+
+function drawAll() {
+  drawCharts();
+  drawVisuals();
+}
+
+function drawCharts() {
+  if (!latest || latest.error || !latest.res) {
+    clearCanvas(elements.qChart, "Invalid inputs");
+    clearCanvas(elements.dpcChart, "Invalid inputs");
+    return;
+  }
+  drawQChart(elements.qChart, latest.p, latest.res);
+  drawDpcChart(elements.dpcChart, latest.p, latest.res);
+}
+
+function drawQChart(canvas, p, res) {
+  const data = [];
+  const xMin = 0.5;
+  const xMax = Math.max(20, p.dp * 1.25);
+  for (let dp = xMin; dp <= xMax + 0.001; dp += 0.25) {
+    const dpM = dp * 1e-6;
+    const qMax = Math.PI * p.L * (p.r2 * p.r2 - p.r1 * p.r1) * dpM * dpM * res.dRho * res.omega * res.omega /
+      (18 * p.mu * res.lnR);
+    data.push({ x: dp, y: qMax * 1e6 });
+  }
+  const yMax = niceMax(Math.max(...data.map((d) => d.y), p.qMl) * 1.18);
+  drawChart(canvas, {
+    xMin, xMax, yMin: 0, yMax,
+    xLabel: "particle diameter dp (um)",
+    yLabel: "Qmax (mL/s)",
+    series: [{ data, color: COLORS.green, fill: "rgba(28,155,97,0.10)" }],
+    hLines: [{ y: p.qMl, color: COLORS.orange, label: `Q actual ${fmt(p.qMl, 3)} mL/s` }],
+    vLines: [{ x: p.dp, color: COLORS.teal, label: `dp ${fmt(p.dp, 2)} um` }],
+    markers: [{ x: p.dp, y: res.qMax * 1e6, color: COLORS.green }]
+  });
+}
+
+function drawDpcChart(canvas, p, res) {
+  const data = [];
+  const xMin = 1000;
+  const xMax = 50000;
+  for (let rpm = xMin; rpm <= xMax; rpm += 500) {
+    const omega = rpm * TWO_PI / 60;
+    const dpc = Math.sqrt((18 * p.mu * p.Q * res.lnR) /
+      (Math.PI * p.L * (p.r2 * p.r2 - p.r1 * p.r1) * res.dRho * omega * omega)) * 1e6;
+    data.push({ x: rpm, y: dpc });
+  }
+  const yMax = niceMax(Math.max(...data.map((d) => d.y), p.dp) * 1.15);
+  drawChart(canvas, {
+    xMin, xMax, yMin: 0, yMax,
+    xLabel: "speed N (RPM)",
+    yLabel: "cut diameter dpc (um)",
+    series: [{ data, color: COLORS.teal, fill: "rgba(0,139,143,0.10)" }],
+    hLines: [{ y: p.dp, color: COLORS.green, label: `actual dp ${fmt(p.dp, 2)} um` }],
+    vLines: [{ x: p.rpm, color: COLORS.violet, label: `${fmt(p.rpm, 0)} RPM` }],
+    markers: [{ x: p.rpm, y: res.dpc, color: COLORS.teal }]
+  });
+}
+
+function drawChart(canvas, opts) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  const pad = { l: 54, r: 16, t: 18, b: 42 };
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+  const sx = (x) => pad.l + (x - opts.xMin) / (opts.xMax - opts.xMin) * pw;
+  const sy = (y) => pad.t + ph - (y - opts.yMin) / (opts.yMax - opts.yMin) * ph;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#fbfdfd";
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = COLORS.line;
+  ctx.lineWidth = 1;
+  ctx.fillStyle = COLORS.muted;
+  ctx.font = "11px Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i <= 4; i++) {
+    const yVal = opts.yMin + (opts.yMax - opts.yMin) * i / 4;
+    const y = sy(yVal);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(w - pad.r, y);
+    ctx.stroke();
+    ctx.fillText(shortNum(yVal), pad.l - 8, y);
+  }
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (let i = 0; i <= 4; i++) {
+    const xVal = opts.xMin + (opts.xMax - opts.xMin) * i / 4;
+    const x = sx(xVal);
+    ctx.beginPath();
+    ctx.moveTo(x, pad.t);
+    ctx.lineTo(x, pad.t + ph);
+    ctx.stroke();
+    ctx.fillText(shortNum(xVal), x, pad.t + ph + 8);
+  }
+
+  opts.series.forEach((series) => {
+    ctx.beginPath();
+    series.data.forEach((point, index) => {
+      const x = sx(point.x);
+      const y = sy(point.y);
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    if (series.fill) {
+      ctx.lineTo(sx(series.data[series.data.length - 1].x), sy(opts.yMin));
+      ctx.lineTo(sx(series.data[0].x), sy(opts.yMin));
+      ctx.closePath();
+      ctx.fillStyle = series.fill;
+      ctx.fill();
+    }
+    ctx.beginPath();
+    series.data.forEach((point, index) => {
+      const x = sx(point.x);
+      const y = sy(point.y);
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = series.color;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+  });
+
+  (opts.hLines || []).forEach((line) => {
+    if (line.y < opts.yMin || line.y > opts.yMax) return;
+    const y = sy(line.y);
+    dashed(ctx, () => {
+      ctx.beginPath();
+      ctx.moveTo(pad.l, y);
+      ctx.lineTo(w - pad.r, y);
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    });
+    ctx.fillStyle = line.color;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(line.label, w - pad.r - 2, y - 4);
+  });
+
+  (opts.vLines || []).forEach((line) => {
+    if (line.x < opts.xMin || line.x > opts.xMax) return;
+    const x = sx(line.x);
+    dashed(ctx, () => {
+      ctx.beginPath();
+      ctx.moveTo(x, pad.t);
+      ctx.lineTo(x, pad.t + ph);
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    });
+    ctx.save();
+    ctx.translate(x + 8, pad.t + 8);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = line.color;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(line.label, 0, 0);
+    ctx.restore();
+  });
+
+  (opts.markers || []).forEach((marker) => {
+    if (marker.x < opts.xMin || marker.x > opts.xMax || marker.y < opts.yMin || marker.y > opts.yMax) return;
+    const x = sx(marker.x);
+    const y = sy(marker.y);
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, TWO_PI);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = marker.color;
+    ctx.stroke();
+  });
+
+  ctx.strokeStyle = "#91a5aa";
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = COLORS.muted;
+  ctx.font = "11px Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(opts.xLabel, pad.l + pw / 2, h - 4);
+  ctx.save();
+  ctx.translate(12, pad.t + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(opts.yLabel, 0, 0);
+  ctx.restore();
+}
+
+function drawVisuals() {
+  if (!latest || latest.error || !latest.res) {
+    clearCanvas(elements.path2d, latest ? latest.error : "");
+    clearCanvas(elements.path3d, latest ? latest.error : "");
+    return;
+  }
+  draw2D(elements.path2d, latest.p, latest.res, animation.progress);
+  draw3D(elements.path3d, latest.p, latest.res, animation.progress);
+}
+
+function draw2D(canvas, p, res, progress) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 38, r: 38, t: 34, b: 46 };
+  const bowlH = h - pad.t - pad.b;
+  const cx = w / 2;
+  const maxR = Math.max(p.r2 * 1.28, 0.050);
+  const scaleR = Math.min((w * 0.42) / maxR, (w - pad.l - pad.r) / (2 * maxR));
+  const r1 = p.r1 * scaleR;
+  const r2 = p.r2 * scaleR;
+  const yFromZ = (z) => pad.t + bowlH - (z / p.L) * bowlH;
+
+  ctx.fillStyle = "#f6fafb";
+  ctx.fillRect(0, 0, w, h);
+  drawFlowBackground(ctx, w, h);
+
+  const annulusGrad = ctx.createLinearGradient(cx + r1, 0, cx + r2, 0);
+  annulusGrad.addColorStop(0, "rgba(0,139,143,0.16)");
+  annulusGrad.addColorStop(1, "rgba(0,139,143,0.04)");
+  ctx.fillStyle = annulusGrad;
+  ctx.fillRect(cx + r1, pad.t, r2 - r1, bowlH);
+  ctx.fillRect(cx - r2, pad.t, r2 - r1, bowlH);
+
+  ctx.fillStyle = "rgba(23,32,38,0.035)";
+  ctx.fillRect(cx - r1, pad.t, r1 * 2, bowlH);
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#81979d";
+  strokeRectLine(ctx, cx + r1, pad.t, r2 - r1, bowlH);
+  strokeRectLine(ctx, cx - r2, pad.t, r2 - r1, bowlH);
+  ctx.strokeStyle = "#172026";
+  ctx.lineWidth = 1.2;
+  dashed(ctx, () => {
+    ctx.beginPath();
+    ctx.moveTo(cx, pad.t - 8);
+    ctx.lineTo(cx, pad.t + bowlH + 8);
+    ctx.stroke();
+  }, [5, 5]);
+
+  drawArrow(ctx, cx, pad.t + bowlH + 30, cx, pad.t + bowlH + 10, COLORS.teal, "");
+  // Feed label at bottom
+  ctx.font = "bold 11px Segoe UI, Arial, sans-serif";
+  ctx.fillStyle = COLORS.teal;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("Feed (blood in)", cx, pad.t + bowlH + 32);
+
+  // Discharge arrow at top
+  drawArrow(ctx, cx, pad.t - 8, cx, pad.t - 28, COLORS.teal, "");
+  ctx.fillStyle = COLORS.teal;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText("Liquid discharge (plasma out)", cx, pad.t - 30);
+
+  // r1 dimension line (inner radius, right side)
+  const r1LabelY = pad.t + bowlH * 0.72;
+  ctx.strokeStyle = COLORS.muted;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(cx, r1LabelY); ctx.lineTo(cx + r1, r1LabelY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = "11px Segoe UI, Arial, sans-serif";
+  ctx.fillStyle = "#3a4b52";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(`r₁ = ${fmt(p.r1 * 1000, 1)} mm`, cx + r1 / 2, r1LabelY - 3);
+
+  // r2 dimension line (outer radius, right side)
+  const r2LabelY = pad.t + bowlH * 0.55;
+  ctx.strokeStyle = COLORS.muted;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(cx, r2LabelY); ctx.lineTo(cx + r2, r2LabelY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#3a4b52";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(`r₂ = ${fmt(p.r2 * 1000, 1)} mm`, cx + r2 / 2, r2LabelY - 3);
+
+  // Bowl wall label
+  ctx.fillStyle = COLORS.muted;
+  ctx.font = "10px Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Bowl wall", cx + r2 + 5, pad.t + bowlH * 0.3);
+
+  // Axis of rotation label
+  ctx.fillStyle = COLORS.muted;
+  ctx.font = "10px Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("Axis", cx, pad.t + 4);
+
+  // L label on side
+  ctx.save();
+  ctx.translate(14, pad.t + bowlH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = "11px Segoe UI, Arial, sans-serif";
+  ctx.fillStyle = COLORS.muted;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`L = ${fmt(p.L, 2)} m`, 0, 0);
+  ctx.restore();
+
+  // Surface of liquid label inside bowl
+  ctx.font = "10px Segoe UI, Arial, sans-serif";
+  ctx.fillStyle = "rgba(0,139,143,0.75)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("Surface of liquid", cx, pad.t + 6);
+
+  const tracks = getTracks(p, res);
+  tracks.forEach((track) => {
+    draw2DTrack(ctx, track, cx, scaleR, yFromZ, p.r2);
+  });
+
+  const mainTrack = tracks[1];
+  const pos = positionAtProgress(mainTrack, progress, res.tRes);
+  const xRight = cx + Math.min(pos.r, p.r2) * scaleR;
+  const y = yFromZ(pos.z);
+  ctx.beginPath();
+  ctx.arc(xRight, y, 7, 0, TWO_PI);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = COLORS.teal;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx - Math.min(pos.r, p.r2) * scaleR, y, 4, 0, TWO_PI);
+  ctx.fillStyle = "rgba(0,139,143,0.35)";
+  ctx.fill();
+
+  drawTimePill(ctx, w, h, progress, res);
+}
+
+function draw2DTrack(ctx, track, cx, scaleR, yFromZ, rMax) {
+  const drawSide = (side, alpha, width, dash) => {
+    ctx.beginPath();
+    track.points.forEach((point, index) => {
+      const x = cx + side * Math.min(point.r, rMax) * scaleR;
+      const y = yFromZ(point.z);
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = hexWithAlpha(track.color, alpha);
+    ctx.lineWidth = width;
+    if (dash) ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+
+  drawSide(1, 0.92, track.mult === 1 ? 3.2 : 2.2);
+  drawSide(-1, 0.38, 1.6, [5, 6]);
+
+  const end = track.points[track.points.length - 1];
+  const ex = cx + Math.min(end.r, rMax) * scaleR;
+  const ey = yFromZ(end.z);
+  ctx.beginPath();
+  ctx.arc(ex, ey, 5, 0, TWO_PI);
+  ctx.fillStyle = track.color;
+  ctx.fill();
+  ctx.font = "12px Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = track.color;
+  ctx.fillText(track.captured ? "wall" : "exit", ex + 9, ey);
+
+  const mid = track.points[Math.floor(track.points.length * 0.52)];
+  const prev = track.points[Math.max(0, Math.floor(track.points.length * 0.52) - 2)];
+  const mx = cx + mid.r * scaleR;
+  const my = yFromZ(mid.z);
+  const px = cx + prev.r * scaleR;
+  const py = yFromZ(prev.z);
+  drawArrowHead(ctx, px, py, mx, my, track.color);
+}
+
+function draw3D(canvas, p, res, progress) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#f6fafb";
+  ctx.fillRect(0, 0, w, h);
+  drawFlowBackground(ctx, w, h);
+
+  const model = { length: 1.72, outer: 0.33, inner: 0.19 };
+  const project = projector(w, h, model);
+  const backColor = "rgba(23,32,38,0.20)";
+  const frontColor = "rgba(23,32,38,0.58)";
+
+  drawCylinder(ctx, project, model, backColor, frontColor);
+  draw3DAxis(ctx, project, model);
+
+  const tracks = getTracks(p, res);
+  tracks.forEach((track, index) => {
+    draw3DTrack(ctx, project, model, p, res, track, index);
+  });
+
+  const particles = tracks.map((track, index) => {
+    const pos = positionAtProgress(track, progress, res.tRes);
+    return {
+      point: make3DPoint(pos.r, pos.z, p, model, index, res.tRes, pos.t),
+      color: track.color,
+      mult: track.mult
+    };
+  }).sort((a, b) => b.point.depth - a.point.depth);
+
+  particles.forEach((particle) => {
+    const pp = project(particle.point);
+    const radius = particle.mult === 1 ? 7 : 5;
+    ctx.beginPath();
+    ctx.arc(pp.x, pp.y, radius + 3, 0, TWO_PI);
+    ctx.fillStyle = hexWithAlpha(particle.color, 0.16);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(pp.x, pp.y, radius, 0, TWO_PI);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = particle.color;
+    ctx.stroke();
+  });
+
+  draw3DOverlay(ctx, w, h, p, res, progress);
+}
+
+function drawCylinder(ctx, project, model, backColor, frontColor) {
+  const topY = model.length / 2;
+  const botY = -model.length / 2;
+  const rings = [
+    { y: botY, r: model.outer, color: backColor, width: 1.2 },
+    { y: topY, r: model.outer, color: frontColor, width: 1.8 },
+    { y: botY, r: model.inner, color: "rgba(0,139,143,0.25)", width: 1.2 },
+    { y: topY, r: model.inner, color: "rgba(0,139,143,0.52)", width: 1.6 }
+  ];
+
+  rings.forEach((ring) => {
+    ctx.beginPath();
+    for (let i = 0; i <= 96; i++) {
+      const theta = i / 96 * TWO_PI;
+      const point = project({ x: ring.r * Math.cos(theta), y: ring.y, z: ring.r * Math.sin(theta) });
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    }
+    ctx.strokeStyle = ring.color;
+    ctx.lineWidth = ring.width;
+    ctx.stroke();
+  });
+
+  [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach((theta) => {
+    const a = project({ x: model.outer * Math.cos(theta), y: botY, z: model.outer * Math.sin(theta) });
+    const b = project({ x: model.outer * Math.cos(theta), y: topY, z: model.outer * Math.sin(theta) });
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = theta < Math.PI ? backColor : frontColor;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  });
+
+  ctx.beginPath();
+  for (let i = 0; i <= 96; i++) {
+    const theta = i / 96 * TWO_PI;
+    const top = project({ x: model.outer * Math.cos(theta), y: topY, z: model.outer * Math.sin(theta) });
+    if (i === 0) ctx.moveTo(top.x, top.y);
+    else ctx.lineTo(top.x, top.y);
+  }
+  for (let i = 96; i >= 0; i--) {
+    const theta = i / 96 * TWO_PI;
+    const top = project({ x: model.inner * Math.cos(theta), y: topY, z: model.inner * Math.sin(theta) });
+    ctx.lineTo(top.x, top.y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "rgba(0,139,143,0.09)";
+  ctx.fill();
+}
+
+function draw3DAxis(ctx, project, model) {
+  const a = project({ x: 0, y: -model.length / 2 - 0.15, z: 0 });
+  const b = project({ x: 0, y: model.length / 2 + 0.15, z: 0 });
+  dashed(ctx, () => {
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = "rgba(23,32,38,0.42)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }, [5, 6]);
+
+  draw3DArrow(ctx, project, { x: 0, y: -model.length / 2 - 0.18, z: 0 }, { x: 0, y: -model.length / 2 + 0.10, z: 0 }, COLORS.teal);
+}
+
+function draw3DTrack(ctx, project, model, p, res, track, index) {
+  const points = track.points.map((point) => make3DPoint(point.r, point.z, p, model, index, res.tRes, point.t));
+  ctx.beginPath();
+  points.forEach((point, i) => {
+    const pp = project(point);
+    if (i === 0) ctx.moveTo(pp.x, pp.y);
+    else ctx.lineTo(pp.x, pp.y);
+  });
+  ctx.strokeStyle = hexWithAlpha(track.color, track.mult === 1 ? 0.96 : 0.68);
+  ctx.lineWidth = track.mult === 1 ? 3.0 : 2.0;
+  ctx.stroke();
+
+  const end = project(points[points.length - 1]);
+  ctx.beginPath();
+  ctx.arc(end.x, end.y, 4.5, 0, TWO_PI);
+  ctx.fillStyle = track.color;
+  ctx.fill();
+}
+
+function make3DPoint(radius, axialZ, p, model, index, tRes, t) {
+  const rNorm = map(radius, p.r1, p.r2, model.inner, model.outer);
+  const axial = map(axialZ, 0, p.L, -model.length / 2, model.length / 2);
+  const theta = index * 2.05 + (t / tRes) * TWO_PI * 2.4;
+  return {
+    x: rNorm * Math.cos(theta),
+    y: axial,
+    z: rNorm * Math.sin(theta)
+  };
+}
+
+function projector(w, h) {
+  return function project(point) {
+    const cy = Math.cos(view3d.yaw);
+    const sy = Math.sin(view3d.yaw);
+    let x = point.x * cy - point.z * sy;
+    let z = point.x * sy + point.z * cy;
+    let y = point.y;
+
+    const cp = Math.cos(view3d.pitch);
+    const sp = Math.sin(view3d.pitch);
+    const y2 = y * cp - z * sp;
+    const z2 = y * sp + z * cp;
+    const scale = Math.min(w, h) * 0.72 * view3d.zoom / (2.45 + z2);
+    return {
+      x: w / 2 + x * scale,
+      y: h / 2 - y2 * scale,
+      depth: z2
+    };
+  };
+}
+
+function getTracks(p, res) {
+  return [
+    { mult: 0.5, color: COLORS.orange, label: "0.5 dp" },
+    { mult: 1.0, color: COLORS.teal, label: "dp" },
+    { mult: 2.0, color: COLORS.green, label: "2 dp" }
+  ].map((track) => ({ ...track, ...trajectory(p, res, track.mult) }));
+}
+
+function trajectory(p, res, mult) {
+  const dpM = p.dp * mult * 1e-6;
+  const k = dpM * dpM * res.dRho * res.omega * res.omega / (18 * p.mu);
+  const tWall = Math.log(p.r2 / p.r1) / k;
+  const captured = tWall <= res.tRes + 1e-9;
+  const tEnd = Math.min(tWall, res.tRes);
+  const n = 150;
+  const points = [];
+  for (let i = 0; i <= n; i++) {
+    const t = tEnd * i / n;
+    const r = Math.min(p.r1 * Math.exp(k * t), p.r2);
+    const z = Math.min(p.L * t / res.tRes, p.L);
+    points.push({ r, z, t });
+  }
+  return { points, captured, tWall, tEnd, k };
+}
+
+function positionAtProgress(track, progress, totalTime) {
+  const simT = clamp(progress, 0, 1) * totalTime;
+  if (track.captured && simT >= track.tEnd) {
+    return track.points[track.points.length - 1];
+  }
+  const t = Math.min(simT, track.tEnd);
+  const r0 = track.points[0].r;
+  const zEnd = track.points[track.points.length - 1].z;
+  const z = track.captured ? Math.min(zEnd, zEnd * t / Math.max(track.tEnd, 1e-9)) : track.points[0].z + (track.points[track.points.length - 1].z - track.points[0].z) * t / Math.max(track.tEnd, 1e-9);
+  return { r: Math.min(r0 * Math.exp(track.k * t), track.points[track.points.length - 1].r), z, t };
+}
+
+function startAnimation() {
+  animation.running = true;
+  animation.progress = 0;
+  animation.start = performance.now();
+  setStartButtons("Running");
+  cancelAnimationFrame(animation.raf);
+  animation.raf = requestAnimationFrame(drawFrame);
+}
+
+function resetAnimation() {
+  animation.running = false;
+  animation.progress = 0;
+  setStartButtons("Start");
+  drawVisuals();
+}
+
+function drawFrame(now) {
+  if (animation.running) {
+    animation.progress = clamp((now - animation.start) / animation.duration, 0, 1);
+    if (animation.progress >= 1) {
+      animation.running = false;
+      setStartButtons("Done");
+    }
+    drawVisuals();
+    animation.raf = requestAnimationFrame(drawFrame);
+  }
+}
+
+function setStartButtons(text) {
+  const label = text === "Start" ? "&#9654; Start" : text === "Done" ? "Done" : "Running";
+  elements.startBtn2d.innerHTML = label;
+  elements.startBtn3d.innerHTML = label;
+}
+
+function setupCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(1, Math.round(rect.width * dpr));
+  const height = Math.max(1, Math.round(rect.height * dpr));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: rect.width, h: rect.height, dpr };
+}
+
+function clearCanvas(canvas, message) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#fbfdfd";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = COLORS.muted;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "14px Segoe UI, Arial, sans-serif";
+  ctx.fillText(message || "No data", w / 2, h / 2);
+}
+
+function drawFlowBackground(ctx, w, h) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(0,139,143,0.07)";
+  ctx.lineWidth = 1;
+  for (let x = -40; x < w + 40; x += 34) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + 80, h);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, label) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  drawArrowHead(ctx, x1, y1, x2, y2, color);
+  ctx.fillStyle = color;
+  ctx.font = "12px Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = y2 < y1 ? "bottom" : "top";
+  ctx.fillText(label, x2, y2 < y1 ? y2 - 8 : y2 + 8);
+}
+
+function draw3DArrow(ctx, project, a, b, color) {
+  const pa = project(a);
+  const pb = project(b);
+  ctx.beginPath();
+  ctx.moveTo(pa.x, pa.y);
+  ctx.lineTo(pb.x, pb.y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  drawArrowHead(ctx, pa.x, pa.y, pb.x, pb.y, color);
+}
+
+function drawArrowHead(ctx, x1, y1, x2, y2, color) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save();
+  ctx.translate(x2, y2);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-9, 4.5);
+  ctx.lineTo(-9, -4.5);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTimePill(ctx, w, h, progress, res) {
+  const text = `animation time: ${fmt(progress * res.tRes, 2)} s of ${fmt(res.tRes, 2)} s residence`;
+  ctx.font = "12px Segoe UI, Arial, sans-serif";
+  const tw = ctx.measureText(text).width + 22;
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  roundRect(ctx, w - tw - 12, 12, tw, 28, 6);
+  ctx.fill();
+  ctx.strokeStyle = COLORS.line;
+  ctx.stroke();
+  ctx.fillStyle = COLORS.ink;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, w - tw / 2 - 12, 26);
+}
+
+function draw3DOverlay(ctx, w, h, p, res, progress) {
+  const good = res.tRes >= res.tSettle;
+  const text = good ? "current dp reaches wall before outlet" : "current dp exits before reaching wall";
+  const sub = `Q/Qmax = ${fmt(p.Q / res.qMax, 2)} | t = ${fmt(progress * res.tRes, 2)} s`;
+  ctx.font = "12px Segoe UI, Arial, sans-serif";
+  const width = Math.max(ctx.measureText(text).width, ctx.measureText(sub).width) + 22;
+  ctx.fillStyle = "rgba(255,255,255,0.90)";
+  roundRect(ctx, 12, 12, width, 48, 6);
+  ctx.fill();
+  ctx.strokeStyle = COLORS.line;
+  ctx.stroke();
+  ctx.fillStyle = good ? COLORS.green : COLORS.red;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(text, 23, 21);
+  ctx.fillStyle = COLORS.muted;
+  ctx.fillText(sub, 23, 40);
+}
+
+function strokeRectLine(ctx, x, y, w, h) {
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.stroke();
+}
+
+function dashed(ctx, callback, pattern) {
+  ctx.save();
+  ctx.setLineDash(pattern || [6, 5]);
+  callback();
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function formatControl(value, decimals) {
+  const fixed = Number(value).toFixed(decimals);
+  return decimals > 0 ? fixed.replace(/\.?0+$/, "") : fixed;
+}
+
+function fmt(value, decimals) {
+  if (!Number.isFinite(value)) return "--";
+  return Number(value).toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+
+function smartFmt(value, decimals) {
+  const abs = Math.abs(Number(value));
+  if (!Number.isFinite(abs)) return "--";
+  const d = abs >= 1000 ? 1 : abs >= 100 ? Math.min(decimals, 2) : decimals;
+  return fmt(value, d);
+}
+
+function shortNum(value) {
+  if (Math.abs(value) >= 1000) return `${Math.round(value / 1000)}k`;
+  if (Math.abs(value) >= 10) return fmt(value, 0);
+  if (Math.abs(value) >= 1) return fmt(value, 1);
+  return fmt(value, 2);
+}
+
+function ratioText(value) {
+  if (!Number.isFinite(value)) return "--";
+  if (value > 0 && value < 0.01) return value.toExponential(2);
+  return fmt(value, 2);
+}
+
+function niceMax(value) {
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  const exp = Math.floor(Math.log10(value));
+  const fraction = value / Math.pow(10, exp);
+  const nice = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  return nice * Math.pow(10, exp);
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function map(value, inMin, inMax, outMin, outMax) {
+  if (Math.abs(inMax - inMin) < 1e-12) return outMin;
+  return outMin + (value - inMin) / (inMax - inMin) * (outMax - outMin);
+}
+
+function hexWithAlpha(hex, alpha) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
